@@ -55,7 +55,7 @@ This program requires SAC and uses the XAPIIR library (Harris, 1990).
 This whole library is provided in the single source file XAPIIR.f.  
 (The XAPIIR routines are entirely third party software.)  
 
-
+It also requires the LAPACK and BLAS libraries - although all the routines needed are included in the linear algebra part of https://github.com/stevenjgibbons/LEOPACK-2022-revision  
 
 
 
