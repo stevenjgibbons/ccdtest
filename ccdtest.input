@@ -1,0 +1,11 @@
+WS  3.5    0.2 
+WS  3.0    0.2 
+WS  3.0    0.2 
+WS  2.5    0.25
+FS  0.8    2.2   4   2
+FS  1.0    2.5   2   2
+FS  1.2    2.8   4   2
+FS  1.4    3.5   4   2
+FS  1.8    4.0   4   2
+FS  2.2    4.5   4   2
+WF DPRK5_DPRK6_ILAR_example/DPRK6_IL01_IM_--_SHZ_.sac DPRK5_DPRK6_ILAR_example/DPRK5_IL01_IM_--_SHZ_.sac
