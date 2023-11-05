@@ -1,7 +1,11 @@
 # ccdtest
 Cross-Correlation Differential Time ESTimator (ccdtest)
 
-This program requires SAC and uses the XAPIIR library (Harris, 1990)
+This program requires SAC and uses the XAPIIR library (Harris, 1990).
+This whole library is provided in the single source file XAPIIR.f.  
+(The XAPIIR routines are entirely third party software.)  
+
+
 
 
 
