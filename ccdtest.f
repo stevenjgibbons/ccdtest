@@ -136,12 +136,16 @@ C This is a little trickier as it will depend upon the window specifications
 C Let's say 2000 for now. NCCFMX = 5000
 C
       INTEGER     NCCFMX
-      PARAMETER ( NCCFMX = 5000 )
+      PARAMETER ( NCCFMX = 150000 )
       INTEGER     NCCFAC
       INTEGER     ICCF
 C
       REAL*4      RCCMAT( NCCSMX, NCCFMX )
-      REAL*4      RCCVEC( NCCSMX )
+      REAL*4      RCCVEC( NCCSMX         )
+      INTEGER     INTSEL(         NCCFMX )
+      INTEGER     ISMPMA(         NCCFMX )
+      INTEGER     NCFSEL
+      INTEGER     IDIST
 C
 C     INTEGER arrays for SAC epoch time
 C
@@ -153,6 +157,14 @@ C
       REAL*8      DCORRT
       REAL*8      DEDIFF
       REAL*8      DSHIFT
+C
+C DTOL to ensure comparison
+C DTOL is more lenient than DLOW. It means that if there is a
+C 1-3 millisecond difference in the starting times then
+C we will not exit.
+C
+      REAL*8      DTOL
+      PARAMETER ( DTOL = 0.003d0 )
 C
 C DLOW to ensure comparison
 C
@@ -182,6 +194,7 @@ C
 C ICC is the flag for CC versus CC * | CC |
 C
       INTEGER     ICC
+      INTEGER     IFLAG
 C
       INTEGER     NTSTAR
       INTEGER     NELCC 
@@ -481,7 +494,7 @@ C       .
         ENDIF
 C       .
         IF ( OFIRSA ) THEN
-          IF ( DABS( DTIM0A-DTIM01).GT.DLOW ) THEN
+          IF ( DABS( DTIM0A-DTIM01).GT.DTOL ) THEN
             WRITE (6,'(A,1X,f20.4)') 'DTIM0A = ', DTIM0A
             WRITE (6,'(A,1X,f20.4)') 'DTIM01 = ', DTIM01
             GOTO 99
@@ -537,7 +550,7 @@ C       .
           ENDIF
         ENDIF
         IF ( OFIRSB ) THEN
-          IF ( DABS( DTIM0B-DTIM02).GT.DLOW ) THEN
+          IF ( DABS( DTIM0B-DTIM02).GT.DTOL ) THEN
             WRITE (6,'(A,1X,f20.4)') 'DTIM0B = ', DTIM0B
             WRITE (6,'(A,1X,f20.4)') 'DTIM02 = ', DTIM02
             GOTO 99
@@ -721,7 +734,6 @@ c             print *, 'NLENWN = ', NLENWN
 c             print *, 'NTSTAR = ', NTSTAR
 c             print *, 'NELCC  = ', NELCC  
 c             print *, 'NCCSMX = ', NCCSMX 
-c STEVE need a subroutine Calculate CC Function
               CALL CALCCF( IERR, IN1TEM, IN1TAR, IN1COR, NCCSMX,
      1                     R1VALS, R2VALS, RCCVEC,
      2                     NLENWN, NTSTAR, NELCC, ICC )
@@ -741,6 +753,7 @@ C             .
                   RMAXVL = RCCVEC( ISAMP )
                 ENDIF
               ENDDO
+              ISMPMA( NCCFAC ) = ISMPMX
 C             .
               WRITE (6,181) NCCFAC, ISMPMX, RMAXVL
  181  FORMAT('Calc. ',I5,' ismpmx ', I5,' val ',f6.4)
@@ -770,6 +783,87 @@ C
           RMAXVL = RCCVEC( ISAMP )
         ENDIF
       ENDDO
+      WRITE (6,181) 0, ISMPMX, RMAXVL
+C
+C STEVE Now we know that ISMPMX is the sample with the
+C greatest total - but we want to make a more selected stack
+C using only the "best" traces. When we interpolate, we do not
+C want this estimate to be "contaminated" by poor traces.
+C
+cc      REAL*4      RCCMAT( NCCSMX, NCCFMX )
+cc      REAL*4      RCCVEC( NCCSMX         )
+cc      INTEGER     INTSEL(         NCCFMX )
+cc      INTEGER     ISMPMA(         NCCFMX )
+cc      INTEGER     NCFSEL
+C
+C We only select those traces for which ISMPMA( itrace )
+C falls within 20 samples of ISMPMX
+C
+      NCFSEL = 0
+      DO ICCF = 1, NCCFAC
+        IDIST  = ISMPMX - ISMPMA( ICCF )
+        IF ( IDIST.GT.-20 .AND. IDIST.LT.20 ) THEN
+          NCFSEL = NCFSEL + 1
+          INTSEL( ICCF ) = 1
+        ELSE
+          INTSEL( ICCF ) = 0
+        ENDIF
+      ENDDO
+      WRITE (6,*) NCFSEL,' out of ',NCCFAC,' traces selected.'
+C
+C We now make a brand new stack containing only those traces selected
+C
+      ISMPMX = -1
+      RMAXVL = -1.0
+      RSCALE = 1.0/REAL( NCFSEL )
+      DO ISAMP = 1, NELCC 
+        RCCVEC( ISAMP ) = 0.0
+        DO ICCF = 1, NCCFAC
+          IF ( INTSEL( ICCF ).EQ.1 ) THEN
+            RCCVEC( ISAMP ) = RCCVEC( ISAMP )+RSCALE*RCCMAT(ISAMP,ICCF)
+          ENDIF
+        ENDDO
+        IF ( RCCVEC( ISAMP ).GT.RMAXVL ) THEN
+          ISMPMX = ISAMP
+          RMAXVL = RCCVEC( ISAMP )
+        ENDIF
+      ENDDO
+      WRITE (6,*)  'With only selected CC traces ... within [-20,20]'
+      WRITE (6,181) 0, ISMPMX, RMAXVL
+C
+C Onw more iteration(!) Now with the new ISMPMX select only
+C those traces within 10 samples.
+C
+      NCFSEL = 0
+      DO ICCF = 1, NCCFAC
+        IDIST  = ISMPMX - ISMPMA( ICCF )
+        IF ( IDIST.GT.-10 .AND. IDIST.LT.10 ) THEN
+          NCFSEL = NCFSEL + 1
+          INTSEL( ICCF ) = 1
+        ELSE
+          INTSEL( ICCF ) = 0
+        ENDIF
+      ENDDO
+      WRITE (6,*) NCFSEL,' out of ',NCCFAC,' traces selected.'
+C
+C We now make a brand new stack containing only those traces selected
+C
+      ISMPMX = -1
+      RMAXVL = -1.0
+      RSCALE = 1.0/REAL( NCFSEL )
+      DO ISAMP = 1, NELCC
+        RCCVEC( ISAMP ) = 0.0
+        DO ICCF = 1, NCCFAC
+          IF ( INTSEL( ICCF ).EQ.1 ) THEN
+            RCCVEC( ISAMP ) = RCCVEC( ISAMP )+RSCALE*RCCMAT(ISAMP,ICCF)
+          ENDIF
+        ENDDO
+        IF ( RCCVEC( ISAMP ).GT.RMAXVL ) THEN
+          ISMPMX = ISAMP
+          RMAXVL = RCCVEC( ISAMP )
+        ENDIF
+      ENDDO
+      WRITE (6,*)  'With only selected CC traces ... within [-10,10]'
       WRITE (6,181) 0, ISMPMX, RMAXVL
 C
 C So we know that the maximum on the stack is close to 
@@ -806,12 +900,13 @@ C
      1              STACODE, PHACODE, DCCOPT, DEDIFF
  399  FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,A8,1X,f6.4,1X,f20.4)
 C
-      print *,' NCCFAC = ', NCCFAC
+c     print *,' NCCFAC = ', NCCFAC
       CALL EXIT(0)
  99   CONTINUE
       WRITE (6,*) 'Abnormal exit.'
       WRITE (6,*) 'IARG   = ', IARG
       WRITE (6,*) 'CHARG  = ', CHARG
+      WRITE (6,*) 'ERROR'
       CALL EXIT(1)
       END
 C=====================================================================
@@ -1687,4 +1782,4 @@ C
 C
       RETURN
       END
-C*********************************************************************
+C
