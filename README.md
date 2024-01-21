@@ -1,5 +1,10 @@
 # ccdtest
-Cross-Correlation Differential Time ESTimator (ccdtest)
+Cross-Correlation Differential Time ESTimator (ccdtest)  
+
+ccdtest v1.0.0 (January 21, 2024) is permanently archived on Zenodo with DOI: 10.5281/zenodo.10546486
+
+[![DOI](https://zenodo.org/badge/714749863.svg)](https://zenodo.org/doi/10.5281/zenodo.10546486)  
+
 
 This program measures the relative times between similar signals on a single station (or multiple closely spaced stations - i.e. an array) for two different events.
 We need an input file of the following format:  
