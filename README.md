@@ -5,6 +5,9 @@ ccdtest v1.0.0 (January 21, 2024) is permanently archived on Zenodo with DOI: 10
 
 [![DOI](https://zenodo.org/badge/714749863.svg)](https://zenodo.org/doi/10.5281/zenodo.10546486)  
 
+[![SQAaaS badge](https://github.com/EOSC-synergy/SQAaaS/raw/master/badges/badges_150x116/badge_software_bronze.png)](https://api.eu.badgr.io/public/assertions/6edHLgVjTRq1YlPgwC5VAA "SQAaaS bronze badge achieved")  
+[![SQAaaS badge shields.io](https://img.shields.io/badge/sqaaas%20software-bronze-e6ae77)](https://api.eu.badgr.io/public/assertions/6edHLgVjTRq1YlPgwC5VAA "SQAaaS bronze badge achieved")  
+
 
 This program measures the relative times between similar signals on a single station (or multiple closely spaced stations - i.e. an array) for two different events.
 We need an input file of the following format:  
