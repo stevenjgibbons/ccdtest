@@ -96,6 +96,13 @@ C
 C
 C     REAL*8 arrays for the starting epoch times
 C
+      REAL*8      DTMP1
+      REAL*8      DTMP2
+      REAL*8      DTS
+      REAL*8      DTE
+      REAL*8      DTSREL
+      REAL*8      DTEREL
+C
       REAL*8      DTIM01
       REAL*8      DTIM02
 C
@@ -755,10 +762,47 @@ C             .
               ENDDO
               ISMPMA( NCCFAC ) = ISMPMX
 C             .
-              WRITE (6,181) NCCFAC, ISMPMX, RMAXVL
+c             WRITE (6,181) NCCFAC, ISMPMX, RMAXVL
  181  FORMAT('Calc. ',I5,' ismpmx ', I5,' val ',f6.4)
 C             .
+C             . Now make a careful interpolation of the time
+C             .
+              CALL CCVECI( IERR, NELCC, ISMPMX, RCCVEC, DELTAT,
+     1                     DRELT, DCCOPT )
+              IF ( IERR.NE.0 ) THEN
+                WRITE (6,*) 'Error from subroutine CCVECI'
+                GOTO 99
+              ENDIF
+C
+              DCORRT = DTARSTART + DRELT
+              DEDIFF = DCORRT    - DTEMSTART
+c     WRITE (6,311) 'DTEMSTART = ', DTEMSTART
+c     WRITE (6,311) 'DCORRT    = ', DCORRT
+c311  FORMAT(A,1X,f20.4)
+C
+C H01  H02  2007-08-15T08:00:08.467  2007-08-15T12:00:08.709  LP53   P1  0.926
+C
+              DTS       = DTIM0A    + DBLE(IN1TEM-1)*DELTAT
+              DTE       = DTS       + DBLE(NLENWN-1)*DELTAT
+              DSHIFT    = DTEMRF - DTEMSTART
+              DTMP1     = DTEMSTART + DSHIFT
+              DTMP2     = DCORRT    + DSHIFT
+              DTSREL    = DTS       - DTMP1
+              DTEREL    = DTE       - DTMP1
+              CALL E2UTMS( DTMP1     , CHUTM1 )
+              CALL E2UTMS( DTMP2     , CHUTM2 )
+C
+              WRITE (6,398) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
+     1                      STACODE, PHACODE, DCCOPT, DEDIFF,
+     2                      NCCFAC, IWS, IFS, IWP, ICORR,
+     3                      DTSREL, DTEREL
+ 398          FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,
+     1               A8,1X,f6.4,1X,f20.4,
+     2               ' calc ',I6,1X,I6,1X,I6,1X,I6,1X,I6,1X,
+     3               f8.4,1X,f8.4)
+C             .
             ENDDO
+C           . enddo for icorr = 1, ncorr
           ENDDO
 C         . enddo for iws = 1, nws
         ENDDO
@@ -783,7 +827,7 @@ C
           RMAXVL = RCCVEC( ISAMP )
         ENDIF
       ENDDO
-      WRITE (6,181) 0, ISMPMX, RMAXVL
+c     WRITE (6,181) 0, ISMPMX, RMAXVL
 C
 C STEVE Now we know that ISMPMX is the sample with the
 C greatest total - but we want to make a more selected stack
