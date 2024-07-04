@@ -59,6 +59,22 @@ DPRK6  DPRK5  2017-09-03T03:39:05.6499 2016-09-09T00:39:05.2087  IL01   P   0.67
 ```
 (only the final line of the output is shown.)  
 
+Modification 2024/07/04  
+
+Slight change in the output at intermediate levels - the final line is unchanged.  
+Instead of just reporting the grid node with the highest CC value we interpolate the true maximum time like we do for the stack and we write out this line for each correlation calculation.  
+The following terms are appended on the end of each CC-time report: 
+```
+"calc    456      4      6      1     16   1.7500   4.2400"
+NCALC (456)
+IWS (4 = id of window length specification)
+IFS (6 = id of frequency specification)
+IWP (1 = id of waveform pair)
+ICORR (16 = id of window position specification)
+Dtemp_start ( 1.7500 = time of template start relative to the reference template start)
+DTtemp_end (4.2400 = time of template end relative to the reference template start)
+```
+
 This program requires SAC and uses the XAPIIR library (Harris, 1990).
 This whole library is provided in the single source file XAPIIR.f.  
 (The XAPIIR routines are entirely third party software.)  
