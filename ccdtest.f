@@ -1345,6 +1345,14 @@ C
       REAL*8             DXPROV
 C
       IERR   = 0
+C     .
+C     . Add a couple of lines to prevent pathological cases.
+C     .
+      IF ( ISMPMX.EQ.1 ) ISMPMX = 3
+      IF ( ISMPMX.EQ.2 ) ISMPMX = 3
+      IF ( ISMPMX.EQ.(NELCC-1) ) ISMPMX = NELCC-2
+      IF ( ISMPMX.EQ.NELCC     ) ISMPMX = NELCC-2
+C     .
       IF ( ISMPMX.LT.3 .OR. ISMPMX.GT.(NELCC-2) ) THEN
         WRITE (6,*) 'Subroutine CCVECI: Error '
         WRITE (6,*) ' ISMPMX = ', ISMPMX
