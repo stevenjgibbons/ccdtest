@@ -66,6 +66,7 @@ C
       REAL*4      WINSAR( NWSMAX )
       INTEGER     NLENWN
       INTEGER     NWSTEP
+      INTEGER     ICMLOC
 C
 C NWPMAX is maximum number of waveform pairs
 C That is a single channel that should be 
@@ -151,6 +152,10 @@ C
       REAL*4      RCCVEC( NCCSMX         )
       INTEGER     INTSEL(         NCCFMX )
       INTEGER     ISMPMA(         NCCFMX )
+      INTEGER     IWPARR(         NCCFMX )
+      INTEGER     IFSARR(         NCCFMX )
+      INTEGER     IWSARR(         NCCFMX )
+      INTEGER     ICOARR(         NCCFMX )
       INTEGER     NCFSEL
       INTEGER     IDIST
 C
@@ -215,6 +220,7 @@ C
 C
 C Variables to store the input parameters.
 C
+      CHARACTER*(145) CFINAL
       CHARACTER*(200) CHARG
       CHARACTER*(200) CFNAME
       CHARACTER*(20)  EV1CODE
@@ -716,6 +722,10 @@ C So the number of correlations will be NCORR = 2*NTMPWN/NWSTEP
                 GOTO 99
               ENDIF
               NCCFAC = NCCFAC + 1
+              ICOARR( NCCFAC ) = ICORR
+              IWSARR( NCCFAC ) = IWS
+              IFSARR( NCCFAC ) = IFS
+              IWPARR( NCCFAC ) = IWP
 C             .
 C             . Need to zero out row NCCFAC of RCCMAT
 C             .
@@ -940,11 +950,117 @@ C
       CALL E2UTMS( DTEMSTART , CHUTM1 )
       CALL E2UTMS( DCORRT    , CHUTM2 )
 C
-      WRITE (6,399) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
+      WRITE (CFINAL,399) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
      1              STACODE, PHACODE, DCCOPT, DEDIFF
  399  FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,A8,1X,f6.4,1X,f20.4)
+C             20 21  41 42  66 67  91 92 100 01 09 10 116 117 137
+C DPRK6  DPRK5  2017-09-03T03:39:05.6499 2016-09-09T00:39:05.2087  IL01   P   0.6726    -31028400.4412
+C
+C OK. Now we want to make stacks of all the different
+C combinations of parameters over the different channels
+C 
+C
+      DO IFS = 1, NFS
+        DO IWS = 1, NWS
+          WINLEN = WINLAR( IWS    )
+          WINSTP = WINSAR( IWS    )
+          NLENWN = INT( DBLE( WINLEN )*DINTAT )
+          NWSTEP = INT( DBLE( WINSTP )*DINTAT )
+          NCORR = 2*NTMPWN/NWSTEP
+          DO ICORR = 1, NCORR
+            NCFSEL = 0
+            DO ICCF = 1, NCCFMX
+              INTSEL( ICCF ) = 0
+              RMAXVL = -1.0
+              ICMLOC = 0
+              IF ( IFSARR( ICCF ).EQ.IFS .AND.
+     1             IWSARR( ICCF ).EQ.IWS .AND.
+     2             ICOARR( ICCF ).EQ.ICORR ) THEN
+                DO ISAMP = ISMPMX - 10, ISMPMX + 10
+                  IF ( RCCMAT(ISAMP,ICCF).GT.RMAXVL .AND.
+     1                 RCCMAT(ISAMP,ICCF).GT.RCCMAT(ISAMP-1,ICCF) .AND.
+     2                 RCCMAT(ISAMP,ICCF).GT.RCCMAT(ISAMP+1,ICCF) ) THEN
+                    ICMLOC = ISAMP
+                    RMAXVL = RCCMAT(ISAMP,ICCF)
+                  ENDIF
+                ENDDO
+                IF ( ICMLOC.GT.0 ) THEN
+                  INTSEL( ICCF ) = 1
+                  NCFSEL         = NCFSEL + 1
+c                 print *,' icmloc = ', icmloc
+                ENDIF
+              ENDIF
+            ENDDO
+C           .
+c           WRITE (6,112) IFS, IWS, ICORR, NCFSEL, ISMPMX, ICMLOC
+c112        FORMAT(I5,1X,I5,1X,I5,1X,I5,1X,I5,1X,I5,' hello')
+C           .
+            IF ( NCFSEL.GT.0 ) THEN
+      ICMLOC = -1
+      RMAXVL = -1.0
+      RSCALE = 1.0/REAL( NCFSEL )
+      DO ISAMP = 1, NELCC
+        RCCVEC( ISAMP ) = 0.0
+        DO ICCF = 1, NCCFAC
+          IF ( INTSEL( ICCF ).EQ.1 ) THEN
+            RCCVEC( ISAMP ) = RCCVEC( ISAMP )+RSCALE*RCCMAT(ISAMP,ICCF)
+          ENDIF
+        ENDDO
+        IF ( RCCVEC( ISAMP ).GT.RMAXVL .AND.
+     1       ISAMP.GE.(ISMPMX - 10)    .AND.
+     2       ISAMP.LE.(ISMPMX + 10)     ) THEN
+          ICMLOC = ISAMP
+          RMAXVL = RCCVEC( ISAMP )
+        ENDIF
+      ENDDO
+c     WRITE (6,*)  'With only selected CC traces ... within [-10,10]'
+c     WRITE (6,281) ICMLOC, RMAXVL, IFS, IWS, ICORR, NCFSEL
+c281        FORMAT(I5,1X,f20.4,1X,I5,1X,I5,1X,I5,1X,I5,' hello')
+C     .
+C     . Find max
+C     .
+      CALL CCVECI( IERR, NELCC, ICMLOC, RCCVEC, DELTAT,
+     1             DRELT, DCCOPT )
+      IF ( IERR.NE.0 ) THEN
+        WRITE (6,*) 'Error from subroutine CCVECI'
+        GOTO 99
+      ENDIF
+C     .
+              DCORRT = DTARSTART + DRELT
+              DEDIFF = DCORRT    - DTEMSTART
+c     WRITE (6,311) 'DTEMSTART = ', DTEMSTART
+c     WRITE (6,311) 'DCORRT    = ', DCORRT
+c311  FORMAT(A,1X,f20.4)
+C
+C H01  H02  2007-08-15T08:00:08.467  2007-08-15T12:00:08.709  LP53   P1  0.926
+C
+              DTS       = DTIM0A    + DBLE(IN1TEM-1)*DELTAT
+              DTE       = DTS       + DBLE(NLENWN-1)*DELTAT
+              DSHIFT    = DTEMRF - DTEMSTART
+              DTMP1     = DTEMSTART + DSHIFT
+              DTMP2     = DCORRT    + DSHIFT
+              DTSREL    = DTS       - DTMP1
+              DTEREL    = DTE       - DTMP1
+              CALL E2UTMS( DTMP1     , CHUTM1 )
+              CALL E2UTMS( DTMP2     , CHUTM2 )
+C
+              WRITE (6,397) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
+     1                      STACODE, PHACODE, DCCOPT, DEDIFF,
+     2                      NCCFAC, IWS, IFS, ICORR,
+     3                      DTSREL, DTEREL
+ 397          FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,
+     1               A8,1X,f6.4,1X,f20.4,
+     2               ' local ',I6,1X,I6,1X,I6,1X,I6,1X,
+     3               f8.4,1X,f8.4)
+            ENDIF
+C           .
+C           .
+          ENDDO
+        ENDDO
+      ENDDO
 C
 c     print *,' NCCFAC = ', NCCFAC
+      WRITE (6,'(A)') CFINAL(1:137)
       CALL EXIT(0)
  99   CONTINUE
       WRITE (6,*) 'Abnormal exit.'
