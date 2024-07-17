@@ -73,7 +73,7 @@ C That is a single channel that should be
 C present for both events
 C
       INTEGER     NWPMAX
-      PARAMETER ( NWPMAX = 25 )
+      PARAMETER ( NWPMAX = 60 )
       INTEGER     NWP
       INTEGER     IWP
 C
