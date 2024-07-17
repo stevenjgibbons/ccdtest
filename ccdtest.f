@@ -1054,11 +1054,11 @@ C
 C
               WRITE (6,397) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
      1                      STACODE, PHACODE, DCCOPT, DEDIFF,
-     2                      NCCFAC, IWS, IFS, ICORR, NCFSEL,
+     2                      IWS, IFS, ICORR, NCFSEL,
      3                      DTSREL, DTEREL
  397          FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,
      1               A8,1X,f6.4,1X,f20.4,
-     2               ' local ',I6,1X,I6,1X,I6,1X,I6,1X,I6,1X,
+     2               ' local ',I6,1X,I6,1X,I6,1X,I6,1X,
      3               f8.4,1X,f8.4)
             ENDIF
 C           .
