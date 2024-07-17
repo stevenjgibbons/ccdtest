@@ -75,6 +75,20 @@ Dtemp_start ( 1.7500 = time of template start relative to the reference template
 DTtemp_end (4.2400 = time of template end relative to the reference template start)
 ```
 
+We also calculate stacks for each combination of IFS (frequency band), IWS (window specification), and ICORR (window placement) over all channels present - where only the maximum closest to the maximum of the global stack is sought.
+These add the following terms to the end of the corresponding CC-time reports:  
+
+```
+"local    4      6     16      1   1.7500   4.2400"
+IWS (4 = id of window length specification)
+IFS (6 = id of frequency specification)
+ICORR (16 = id of window position specification)
+NCFSEL (number of channels collected)
+Dtemp_start ( 1.7500 = time of template start relative to the reference template start)
+DTtemp_end (4.2400 = time of template end relative to the reference template start)
+
+```
+
 This program requires SAC and uses the XAPIIR library (Harris, 1990).
 This whole library is provided in the single source file XAPIIR.f.  
 (The XAPIIR routines are entirely third party software.)  
