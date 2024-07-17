@@ -956,6 +956,9 @@ C
 C             20 21  41 42  66 67  91 92 100 01 09 10 116 117 137
 C DPRK6  DPRK5  2017-09-03T03:39:05.6499 2016-09-09T00:39:05.2087  IL01   P   0.6726    -31028400.4412
 C
+C Reset DTEMSTART
+      DTEMSTART = DTEMSTART - DSHIFT
+C
 C OK. Now we want to make stacks of all the different
 C combinations of parameters over the different channels
 C 
@@ -967,7 +970,12 @@ C
           NLENWN = INT( DBLE( WINLEN )*DINTAT )
           NWSTEP = INT( DBLE( WINSTP )*DINTAT )
           NCORR = 2*NTMPWN/NWSTEP
+          IN1COR = 1
+          IN1TEM = 1 + NTEMSTART - NWSTEP
+          IN1TAR = 1 + NTARSTART - NWSTEP
           DO ICORR = 1, NCORR
+            IN1TEM = IN1TEM + NWSTEP
+            IN1TAR = IN1TAR + NWSTEP
             NCFSEL = 0
             DO ICCF = 1, NCCFMX
               INTSEL( ICCF ) = 0
@@ -1046,11 +1054,11 @@ C
 C
               WRITE (6,397) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
      1                      STACODE, PHACODE, DCCOPT, DEDIFF,
-     2                      NCCFAC, IWS, IFS, ICORR,
+     2                      NCCFAC, IWS, IFS, ICORR, NCFSEL,
      3                      DTSREL, DTEREL
  397          FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,
      1               A8,1X,f6.4,1X,f20.4,
-     2               ' local ',I6,1X,I6,1X,I6,1X,I6,1X,
+     2               ' local ',I6,1X,I6,1X,I6,1X,I6,1X,I6,1X,
      3               f8.4,1X,f8.4)
             ENDIF
 C           .
