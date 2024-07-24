@@ -27,6 +27,26 @@ C
       PROGRAM ccdtest
       IMPLICIT NONE
 C
+C Want a couple of parameters to be able to save the output lines
+C so that we can write them out together with the differences
+C
+      INTEGER          ISCALA
+      INTEGER          NSCALA
+      INTEGER          NSCALM
+      PARAMETER      ( NSCALM = 200000 )
+      CHARACTER *(207) CSCALO( NSCALM )
+      REAL*8           DSCALT( NSCALM )
+C
+      INTEGER          ILOCLA
+      INTEGER          NLOCLA
+      INTEGER          NLOCLM
+      PARAMETER      ( NLOCLM = 200000 )
+      CHARACTER *(207) CLOCLO( NLOCLM )
+      REAL*8           DLOCLT( NLOCLM )
+C
+      REAL*8           DTDIFF
+      REAL*8           DFINAL
+C
 C First define parameters
 C NFSMAX is the maximum number of filter specifications
 C NFS    is the actual number of filter specifications read in
@@ -665,6 +685,7 @@ C Here are the four fixed parameters for the filtering.
       TRBNDW = 0.5
       A      = 1.0
 C
+      NSCALA = 0
       NCCFAC = 0
       DO IWP = 1, NWP
         DO IFS = 1, NFS
@@ -802,13 +823,21 @@ C
               CALL E2UTMS( DTMP1     , CHUTM1 )
               CALL E2UTMS( DTMP2     , CHUTM2 )
 C
-              WRITE (6,398) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
-     1                      STACODE, PHACODE, DCCOPT, DEDIFF,
-     2                      NCCFAC, IWS, IFS, IWP, ICORR,
-     3                      DTSREL, DTEREL
+              NSCALA = NSCALA + 1
+              IF ( NSCALA.GT.NSCALM ) THEN
+                WRITE (6,*) 'NSCALM about to be exceeded. Aborting.'
+                CALL EXIT(1)
+              ENDIF
+              DSCALT( NSCALA ) = DTMP2
+C
+              WRITE ( CSCALO( NSCALA )(1:207) ,398) 
+     1                      EV1CODE, EV2CODE, CHUTM1, CHUTM2,
+     2                      STACODE, PHACODE, DCCOPT, DEDIFF,
+     3                      NCCFAC, IWS, IFS, IWP, ICORR,
+     4                      DTSREL, DTEREL
  398          FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,
      1               A8,1X,f6.4,1X,f20.4,
-     2               ' calc ',I6,1X,I6,1X,I6,1X,I6,1X,I6,1X,
+     2               ' -99.9999 calc ',I6,1X,I6,1X,I6,1X,I6,1X,I6,1X,
      3               f8.4,1X,f8.4)
 C             .
             ENDDO
@@ -949,6 +978,7 @@ C
       DCORRT    = DCORRT    + DSHIFT
       CALL E2UTMS( DTEMSTART , CHUTM1 )
       CALL E2UTMS( DCORRT    , CHUTM2 )
+      DFINAL    = DCORRT
 C
       WRITE (CFINAL,399) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
      1              STACODE, PHACODE, DCCOPT, DEDIFF
@@ -962,6 +992,7 @@ C
 C OK. Now we want to make stacks of all the different
 C combinations of parameters over the different channels
 C 
+      NLOCLA = 0
 C
       DO IFS = 1, NFS
         DO IWS = 1, NWS
@@ -1052,13 +1083,22 @@ C
               CALL E2UTMS( DTMP1     , CHUTM1 )
               CALL E2UTMS( DTMP2     , CHUTM2 )
 C
-              WRITE (6,397) EV1CODE, EV2CODE, CHUTM1, CHUTM2,
-     1                      STACODE, PHACODE, DCCOPT, DEDIFF,
-     2                      IWS, IFS, ICORR, NCFSEL,
-     3                      DTSREL, DTEREL
+C
+              NLOCLA = NLOCLA + 1
+              IF ( NLOCLA.GT.NLOCLM ) THEN
+                WRITE (6,*) 'NLOCLM about to be exceeded. Aborting.'
+                CALL EXIT(1)
+              ENDIF
+              DLOCLT( NLOCLA ) = DTMP2
+C
+              WRITE ( CLOCLO( NLOCLA )(1:198) ,397) 
+     1                      EV1CODE, EV2CODE, CHUTM1, CHUTM2,
+     2                      STACODE, PHACODE, DCCOPT, DEDIFF,
+     3                      IWS, IFS, ICORR, NCFSEL,
+     4                      DTSREL, DTEREL
  397          FORMAT(A20,1X,A20,1X,A24,1X,A24,1X,A8,1X,
      1               A8,1X,f6.4,1X,f20.4,
-     2               ' local ',I6,1X,I6,1X,I6,1X,I6,1X,
+     2               ' -99.9999 local ',I6,1X,I6,1X,I6,1X,I6,1X,
      3               f8.4,1X,f8.4)
             ENDIF
 C           .
@@ -1068,6 +1108,23 @@ C           .
       ENDDO
 C
 c     print *,' NCCFAC = ', NCCFAC
+C
+C Now write out the individual lines including the deviation from DFINAL
+C
+      DO ISCALA = 1, NSCALA 
+        DTDIFF = DSCALT( ISCALA ) - DFINAL
+        WRITE ( CSCALO( ISCALA )(139:146), '(f8.4)', ERR=99 ) 
+     1                                  DTDIFF
+        WRITE (6,'(A)') CSCALO( ISCALA )(1:197)
+      ENDDO
+C
+      DO ILOCLA = 1, NLOCLA
+        DTDIFF = DLOCLT( ILOCLA ) - DFINAL
+        WRITE ( CLOCLO( ILOCLA )(139:146), '(f8.4)', ERR=99 )
+     1                                  DTDIFF
+        WRITE (6,'(A)') CLOCLO( ILOCLA )(1:198)
+      ENDDO
+C
       WRITE (6,'(A)') CFINAL(1:137)
       CALL EXIT(0)
  99   CONTINUE
