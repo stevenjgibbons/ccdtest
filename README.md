@@ -65,7 +65,8 @@ Slight change in the output at intermediate levels - the final line is unchanged
 Instead of just reporting the grid node with the highest CC value we interpolate the true maximum time like we do for the stack and we write out this line for each correlation calculation.  
 The following terms are appended on the end of each CC-time report: 
 ```
-"calc    456      4      6      1     16   1.7500   4.2400"
+" -0.0008 calc    456      4      6      1     16   1.7500   4.2400"
+dt  (time relative to the total stack-determined time)
 NCALC (456)
 IWS (4 = id of window length specification)
 IFS (6 = id of frequency specification)
@@ -79,7 +80,8 @@ We also calculate stacks for each combination of IFS (frequency band), IWS (wind
 These add the following terms to the end of the corresponding CC-time reports:  
 
 ```
-"local    4      6     16      1   1.7500   4.2400"
+" -0.0084 local    4      6     16      1   1.7500   4.2400"
+dt  (time relative to the total stack-determined time)
 IWS (4 = id of window length specification)
 IFS (6 = id of frequency specification)
 ICORR (16 = id of window position specification)
