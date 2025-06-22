@@ -53,6 +53,18 @@ icc=2
 ccdtest $ev1 $ev2 $sta $pha $dtxtem $dtxtar $dtmpwn $dtarwn $icc < ccdtest.input
 ```
 
+The parameter *icc* can currently take 4 values: 1, 2, 3, or 4.  
+*icc = 1* calculates the fully normalized correlation coefficient *C*.  
+*icc = 2* calculates *C|C|*.  
+*icc = 3* calculates the phase correlation coefficient *PCC* (based on Schimmel, 1999, https://doi.org/10.1785/BSSA0890051366)  
+*icc = 4* calculates *PCC|PCC|*.  
+
+Note that you need the *fftpack* library to be able to run *icc = 3* or *icc = 4*.  
+
+If you know that you will not need this then you can copy the file *no_pcc_ccdtest.f* to *ccdtest.f*.  
+
+
+
 This should generate the output as follows with the example given:  
 ```
 DPRK6  DPRK5  2017-09-03T03:39:05.6499 2016-09-09T00:39:05.2087  IL01   P   0.6726    -31028400.4412
