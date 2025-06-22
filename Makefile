@@ -9,6 +9,7 @@ SACHOME = /home/stg/ext_programs/SAC/sac-102.0
 SACLIB  = ${SACHOME}/lib/libsacio.a
 LAPACK= /home/stg/ext_programs/LEOPACK-2022-revision/lib/lalib.a
 BLAS= /home/stg/ext_programs/LEOPACK-2022-revision/lib/bllib.a
+FFTPACK= /home/stg/ext_programs/fftpack/lib/x86_64/libfftpack.a
 TOPDIR=   /home/stg/SRC
 # BINDIR=  $(TOPDIR)/BIN
 BINDIR=  .
@@ -17,7 +18,7 @@ BINDIR=  .
 #
 PROGNAME= ccdtest
 ALLSOURCECODE=  \
-   $(PROGNAME).f  XAPIIR.f
+   $(PROGNAME).f  XAPIIR.f 
 #
 SOURCES= \
         $(ALLSOURCECODE)
@@ -26,7 +27,7 @@ OPTIM=	  -O3
 EXEFILE= $(BINDIR)/$(PROGNAME)
 FORTRAN= gfortran
 #
-LIBS=    $(LAPACK) $(BLAS) $(SACLIB)
+LIBS=    $(LAPACK) $(BLAS) $(SACLIB) $(FFTPACK)
 #
 backup:
 	cp -ip $(ALLSOURCECODE) ./BACKUP ; \

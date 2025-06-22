@@ -2,8 +2,6 @@ C
 C  Steve Gibbons   NGI
 C  2023-09-19
 C
-C  Modification 2025-06-22 to be able to calculate Phase Cross Correlation or PCC
-C
 C  ccdtest
 C
 C Cross-Correlation-based Differential Time Estimation
@@ -17,8 +15,7 @@ C    DTXTEM  - expected relative time of template signal
 C    DTXTAR  - expected relative time of target signal
 C    DTMPWN  - number of seconds before and after DTXTEM to search
 C    DTARWN  - number of seconds before and after DTXTAR to search
-C    ICC  = 1 for CC,  2 for  CC * |  CC |
-C    ICC  = 3 for PCC, 4 for PCC * | PCC |
+C    ICC  = 1 for CC, 2 for CC * | CC |
 C
 C Our input file (read to standard input) needs to start a line with
 C either * or # for a comment, or
@@ -117,16 +114,6 @@ C
       REAL*4      REV2WF( NSMPMX, NWPMAX )
       REAL*4      R1VALS( NSMPMX         )
       REAL*4      R2VALS( NSMPMX         )
-C
-C H1VALS and H2VALS contain the Hilbert transforms if requested.
-C P1VALS and P2VALS contain the phase shifts associated with the waveforms
-C WSAVE is a work array for the FFTPACK routines
-C
-      REAL*4      H1VALS( NSMPMX         )
-      REAL*4      H2VALS( NSMPMX         )
-      REAL*4      P1VALS( NSMPMX         )
-      REAL*4      P2VALS( NSMPMX         )
-      REAL*4      WSAVE( 2*NSMPMX + 15    )
 C
 C     REAL*8 arrays for the starting epoch times
 C
@@ -364,11 +351,9 @@ C
       IARG   = 9
       CALL GETARG( IARG, CHARG )
       READ ( CHARG, *, END=99, ERR=99 ) ICC
-      IF ( ICC.LT.1 .OR. ICC.GT.4 ) THEN
+      IF ( ICC.NE.1 .AND. ICC.NE.2 ) THEN
         WRITE (6,*) 'Error: ICC must be 1 for CC  or '
         WRITE (6,*) '                   2 for CC*|CC| '
-        WRITE (6,*) '                   3 for PCC '
-        WRITE (6,*) '                   4 for PCC*|PCC| '
         GOTO 99
       ENDIF
 C
@@ -735,29 +720,6 @@ C         .
           CALL XAPIIR( R2VALS, NSAMP2, APROTO, TRBNDW, A, IORD,
      1                   CHTYPE, FLO, FHI, RDT, PASSES )
 C         .
-C         . At this stage, if ICC.eq.3 or ICC.eq.4 then we
-C         . need to calculate the Hilbert transform
-C         .
-          IF ( ICC.EQ.3 .OR. ICC.EQ.4 ) THEN
-            CALL SGHILB( NSAMP1, R1VALS, H1VALS, WSAVE )
-            CALL SGHILB( NSAMP2, R2VALS, H2VALS, WSAVE )
-C           .
-C           . Now need to calculate the phase differences
-C           .
-            CALL SGPHAS( NSAMP1, R1VALS, H1VALS, P1VALS )
-            CALL SGPHAS( NSAMP2, R2VALS, H2VALS, P2VALS )
-C           .
-c           do iws = 1, nsamp1
-c             write (6,771) iws, r1vals(iws), h1vals(iws)
-c             write (6,772) iws, p1vals(iws)
-c             write (6,771) iws, p1vals(iws), r1vals(iws)
-c           enddo
-c           stop 
-c771        format (i6,1x,f20.6,1x,f20.6)
-c772        format (i6,1x,f20.6         )
-          ENDIF
-C         .
-C         .
           DO IWS = 1, NWS
             WINLEN = WINLAR( IWS    )
             WINSTP = WINSAR( IWS    )
@@ -810,25 +772,12 @@ c             print *, 'NLENWN = ', NLENWN
 c             print *, 'NTSTAR = ', NTSTAR
 c             print *, 'NELCC  = ', NELCC  
 c             print *, 'NCCSMX = ', NCCSMX 
-C             . calculate standard correlation coefficient
-              IF ( ICC.EQ.1 .OR. ICC.EQ.2 ) THEN
-                CALL CALCCF( IERR, IN1TEM, IN1TAR, IN1COR, NCCSMX,
-     1                       R1VALS, R2VALS, RCCVEC,
-     2                       NLENWN, NTSTAR, NELCC, ICC )
-                IF ( IERR.NE.0 ) THEN
-                  WRITE (6,*) 'Subroutine CALCCF returned IERR = ', IERR
-                  GOTO 99
-                ENDIF
-              ENDIF
-C             . calculate phase correlation coefficient
-              IF ( ICC.EQ.3 .OR. ICC.EQ.4 ) THEN
-                CALL CALCCP( IERR, IN1TEM, IN1TAR, IN1COR, NCCSMX,
-     1                       P1VALS, P2VALS, RCCVEC,
-     2                       NLENWN, NTSTAR, NELCC, ICC )
-                IF ( IERR.NE.0 ) THEN
-                  WRITE (6,*) 'Subroutine CALCCP returned IERR = ', IERR
-                  GOTO 99
-                ENDIF
+              CALL CALCCF( IERR, IN1TEM, IN1TAR, IN1COR, NCCSMX,
+     1                     R1VALS, R2VALS, RCCVEC,
+     2                     NLENWN, NTSTAR, NELCC, ICC )
+              IF ( IERR.NE.0 ) THEN
+                WRITE (6,*) 'Subroutine CALCCF returned IERR = ', IERR
+                GOTO 99
               ENDIF
 C             .
 C             . Transfer RCCVEC to RCCMAT
@@ -2062,177 +2011,6 @@ C
 C
       DO IM = 1, IMON - 1
         IDOM = IDOM - NODIM( IM )
-      ENDDO
-C
-      RETURN
-      END
-C
-C SGHILB calculates the Hilbert transform
-C ---------------------------------------
-      SUBROUTINE SGHILB( N, R, H, WSAVE )
-      IMPLICIT NONE
-C
-      INTEGER  N
-      REAL*4   R( N )
-      REAL*4   H( N )
-      REAL*4   WSAVE( 2*N+15 )
-C
-      INTEGER  I
-      REAL*4   RFAC
-      REAL*4   RCCOEF
-      REAL*4   RSCOEF
-      INTEGER  INDCOS
-      INTEGER  INDSIN
-      INTEGER  IFREQ
-      INTEGER  NFREQ
-C
-C First need to copy R into H
-C (as the FFTPACK routines overwrite RX)
-C
-      DO I = 1, N
-        H(I) = R(I)
-      ENDDO
-C
-      RFAC    = 1.0
-      IF ( N.GT.1 ) RFAC = 1.0/REAL( N )
-      CALL RFFTI(N, WSAVE)
-      CALL RFFTF(N, H, WSAVE)
-C     .
-C     . Now calculate the Hilbert transform
-C     .
-      NFREQ  = (N-1)/2
-      DO IFREQ = 1, NFREQ
-        INDCOS = 2*IFREQ
-        INDSIN = INDCOS + 1
-        RCCOEF = H( INDCOS )
-        RSCOEF = H( INDSIN )
-        H( INDCOS ) = -RSCOEF
-        H( INDSIN ) =  RCCOEF
-      ENDDO
-C     .
-      CALL RFFTB(N, H, WSAVE)
-      DO I = 1, N
-         H(I) = H(I)*RFAC
-      ENDDO
-C
-      RETURN
-      END
-C
-C N = number of samples           - in
-C R = actual signal (dim N)       - in
-C H = Hilbert transform (dim N)   - in
-C P = Phase = ATAN2(H(I), R(I))   - out
-C 
-C SGPHAS calculates the phase difference
-C ---------------------------------------
-      SUBROUTINE SGPHAS( N, R, H, P )
-      IMPLICIT NONE
-C
-      INTEGER N
-      REAL*4  R( N )
-      REAL*4  H( N )
-      REAL*4  P( N )
-C
-      INTEGER I
-C
-      DO I = 1, N
-        P( I ) = ATAN2( H(I), R(I) )
-      ENDDO
-C
-      RETURN
-      END
-C
-C --- subroutine which performs phase cross-correlation operations
-C     The waveform template phase shifts are stored in 
-C       P1VALS( IN1TEM ) to P1VALS( IN1TEM + NLENWN - 1 )
-C     The target waveform phase shifts are stored in
-C       P2VALS( IN1TAR ) to P2VALS( IN1TAR + NTSTAR - 1 )
-C     There will be calculated NELCC vector correlations
-C       that will be stored in PCCVEC( IN1COR ) to 
-C         PCCVEC( IN1COR + NELCC - 1 )
-C     so           NELCC should be  NTSTAR - NLENWN + 1
-C     No checks are made on the end of arrays for reading.
-C     We do however check that IN1COR + NELCC - 1 .le. NCCSMX
-C
-C     If ICC.eq.3 then we return the phase correlation coefficient
-C     If ICC.eq.4 then we return the PCC . |PCC|
-C
-      SUBROUTINE CALCCP( IERR, IN1TEM, IN1TAR, IN1COR, NCCSMX,
-     1                   P1VALS, P2VALS, PCCVEC,
-     2                   NLENWN, NTSTAR, NELCC, ICC )
-      IMPLICIT NONE
-C
-      INTEGER            IERR
-      INTEGER            IN1TEM
-      INTEGER            IN1TAR
-      INTEGER            IN1COR
-      INTEGER            NCCSMX
-      REAL*4             P1VALS( * )
-      REAL*4             P2VALS( * )
-      REAL*4             PCCVEC( NCCSMX )
-      INTEGER            NLENWN
-      INTEGER            NTSTAR
-      INTEGER            NELCC
-      INTEGER            ICC
-C
-      INTEGER            IPTCOR
-      INTEGER            IPTTEM
-      INTEGER            IPTTAR
-      INTEGER            JPTTAR
-C
-      REAL*8             DPHAS1
-      REAL*8             DPHAS2
-      REAL*8             DACC
-      REAL*4             RSCALE
-C
-      IERR   = 0
-C
-      IF ( (NTSTAR - NLENWN + 1).NE.NELCC    .OR.
-     1     (IN1COR + NELCC - 1).GT.NCCSMX  ) THEN
-        WRITE (6,*) 'Subroutine CALCCP: problem '
-        WRITE (6,*) 'NCCSMX   = ', NCCSMX
-        WRITE (6,*) 'IN1COR   = ', IN1COR
-        WRITE (6,*) 'NTSTAR   = ', NTSTAR
-        WRITE (6,*) 'NLENWN   = ', NLENWN
-        WRITE (6,*) 'NELCC    = ', NELCC 
-        IERR   = 1
-        RETURN
-      ENDIF
-C
-      IF ( ICC.NE.3 .AND. ICC.NE.4 ) THEN
-        WRITE (6,*) 'Subroutine CALCCP: problem '
-        WRITE (6,*) 'ICC      = ', ICC   
-        IERR   = 1
-        RETURN
-      ENDIF
-C
-C Zero the PCCVEC array in case we need to make a speedy exit
-C
-      DO IPTCOR = 1, NCCSMX
-        PCCVEC( IPTCOR ) = 0.0
-      ENDDO
-C
-C Loop around the nodes we need to calculate a CC for
-C
-      RSCALE = 1.0/REAL(NLENWN)
-      IPTTAR = IN1TAR - 1
-      DO IPTCOR = IN1COR , IN1COR + NELCC - 1
-        IPTTAR = IPTTAR + 1
-C       .
-C       . Calculate the phase correlation coefficient 
-C       .
-        IPTTEM = IN1TEM - 1
-        DACC   = 0.0d0
-        DO JPTTAR = IPTTAR, IPTTAR + NLENWN - 1
-          IPTTEM = IPTTEM + 1
-          DPHAS1 = DBLE( P1VALS( IPTTEM ) )
-          DPHAS2 = DBLE( P2VALS( JPTTAR ) )
-          DACC   = DACC + DCOS( DPHAS1-DPHAS2 )
-        ENDDO
-        PCCVEC( IPTCOR ) = RSCALE*REAL( DACC )
-        IF ( ICC.EQ.4 ) PCCVEC( IPTCOR ) = 
-     1      PCCVEC( IPTCOR )*ABS( PCCVEC( IPTCOR ) )
-C       .
       ENDDO
 C
       RETURN
