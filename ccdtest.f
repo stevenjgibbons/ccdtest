@@ -1116,6 +1116,18 @@ C     .
         GOTO 99
       ENDIF
 C     .
+C     . Now write out the CC-stack trace
+C     . (Just comment out the following 7 lines if you
+C     . do not want this file to be written.)
+C     .
+      CFNAME = ' '
+      CFNAME = 'outputcc.sac'
+      CALL WSAC1( CFNAME, RCCVEC, NELCC, BEG, RDT, IERR )
+      IF ( IERR.NE.0 ) THEN
+        WRITE (6,*) 'WSAC1 returned error IERR = ', IERR
+        GOTO 99
+      ENDIF
+C     .
               DCORRT = DTARSTART + DRELT
               DEDIFF = DCORRT    - DTEMSTART
 c     WRITE (6,311) 'DTEMSTART = ', DTEMSTART
