@@ -47,6 +47,7 @@ C
       CHARACTER *(207) CLOCLO( NLOCLM )
       REAL*8           DLOCLT( NLOCLM )
 C
+      LOGICAL          LEVEN
       REAL*8           DTDIFF
       REAL*8           DFINAL
 C
@@ -65,6 +66,7 @@ C
       INTEGER     NFS
       INTEGER     IFS
 C
+      REAL*4      RX
       REAL*4      FLO
       REAL*4      FHI
       INTEGER     IORD
@@ -196,6 +198,13 @@ C     INTEGER arrays for SAC epoch time
 C
       INTEGER     NZDTA1(6)
       INTEGER     NZDTA2(6)
+      INTEGER     NZDTAC(6)
+      INTEGER     N1
+      INTEGER     N2
+      INTEGER     N3
+      INTEGER     N4
+      INTEGER     N5
+      INTEGER     N6
 C
       REAL*8      DRELT
       REAL*8      DCCOPT
@@ -278,9 +287,11 @@ C the start of the target waveform
       REAL*8          DTARRF
       REAL*8          DTARSTART
       INTEGER         NTARSTART
+      REAL*8          DNEWET
 C
       REAL*4          BEG
       REAL*4          RDT
+      REAL*4          REND
 C
       INTEGER     NIARGS
       INTEGER     IARGC
@@ -1039,6 +1050,73 @@ C DPRK6  DPRK5  2017-09-03T03:39:05.6499 2016-09-09T00:39:05.2087  IL01   P   0.
 C
 C Reset DTEMSTART
       DTEMSTART = DTEMSTART - DSHIFT
+      DNEWET = DTARSTART - DTEMSTART
+      CALL SACE2H( DNEWET, NZDTAC )
+      write (6,*) NZDTAC(1)
+      write (6,*) NZDTAC(2)
+      write (6,*) NZDTAC(3)
+      write (6,*) NZDTAC(4)
+      write (6,*) NZDTAC(5)
+      write (6,*) NZDTAC(6)
+      N1 =        NZDTAC(1)
+      N2 =        NZDTAC(2)
+      N3 =        NZDTAC(3)
+      N4 =        NZDTAC(4)
+      N5 =        NZDTAC(5)
+      N6 =        NZDTAC(6)
+
+C --- initialize a fresh header and set fields ---
+      write (6,*) 'hello 1'
+      call NEWHDR
+      write (6,*) 'hello 1.4'
+      call SETNHV('NZYEAR', N1, IERR )
+      write (6,*) 'hello 1.5'
+      call SETNHV('NZJDAY', N2, IERR )
+      call SETNHV('NZHOUR', N3, IERR )
+      call SETNHV('NZMIN',  N4, IERR )
+      call SETNHV('NZSEC',  N5, IERR )
+      call SETNHV('NZMSEC', N6, IERR )
+      write (6,*) 'hello 2'
+
+      BEG    = 0.0
+      REND   = (NELCC-1)*RDT
+      LEVEN  = .TRUE.
+      RX     = 0.0
+
+      call SETIHV('IZTYPE', 'IB', IERR )      ! reference is begin time
+      call SETFHV('B', BEG, IERR )
+      call SETFHV('E', REND, IERR )
+      call SETFHV('DELTA', RDT, IERR )
+      call SETLHV('LEVEN', LEVEN, IERR  )
+      call SETNHV('NPTS', NELCC, IERR)
+      write (6,*) 'hello 3'
+
+C --- write with full header support ---
+      CFNAME = ' '
+      CFNAME = 'outputcc.sac'
+      call WSAC0( CFNAME , RX, RCCVEC, IERR )
+      IF ( IERR.NE.0 ) THEN
+        WRITE (6,*) 'WSAC0 returned error IERR = ', IERR
+        GOTO 99
+      ENDIF
+
+      write (6,*) 'hello 4'
+
+C     . DNEWET is the time in seconds between the epoch time
+C     . of the target window and the epoch time of the template
+C     . start. We want the output sac file to start with this time.
+C     .
+C     . Now write out the CC-stack trace
+C     . (Just comment out the following 7 lines if you
+C     . do not want this file to be written.)
+C     .
+c     CFNAME = ' '
+c     CFNAME = 'outputcc.sac'
+c     CALL WSAC1( CFNAME, RCCVEC, NELCC, BEG, RDT, IERR )
+c     IF ( IERR.NE.0 ) THEN
+c       WRITE (6,*) 'WSAC1 returned error IERR = ', IERR
+c       GOTO 99
+c     ENDIF
 C
 C OK. Now we want to make stacks of all the different
 C combinations of parameters over the different channels
@@ -1116,20 +1194,9 @@ C     .
         GOTO 99
       ENDIF
 C     .
-C     . Now write out the CC-stack trace
-C     . (Just comment out the following 7 lines if you
-C     . do not want this file to be written.)
-C     .
-      CFNAME = ' '
-      CFNAME = 'outputcc.sac'
-      CALL WSAC1( CFNAME, RCCVEC, NELCC, BEG, RDT, IERR )
-      IF ( IERR.NE.0 ) THEN
-        WRITE (6,*) 'WSAC1 returned error IERR = ', IERR
-        GOTO 99
-      ENDIF
-C     .
               DCORRT = DTARSTART + DRELT
               DEDIFF = DCORRT    - DTEMSTART
+C     .
 c     WRITE (6,311) 'DTEMSTART = ', DTEMSTART
 c     WRITE (6,311) 'DCORRT    = ', DCORRT
 c311  FORMAT(A,1X,f20.4)
@@ -1383,6 +1450,75 @@ C
       SACEPT  = SACEPT +   60.0d0*DBLE( ISACTM(4) )
       SACEPT  = SACEPT +          DBLE( ISACTM(5) )
       SACEPT  = SACEPT +  0.001d0*DBLE( ISACTM(6) )
+C
+      RETURN
+      END
+C
+C
+C Steve Gibbons
+C NGI
+C
+C SAC epoch time 2 human time
+C
+C ISACTM( 1 ) = year
+C ISACTM( 2 ) = Julian day
+C ISACTM( 3 ) = hour
+C ISACTM( 4 ) = minute
+C ISACTM( 5 ) = second
+C ISACTM( 6 ) = millisecond
+C
+      SUBROUTINE SACE2H( SACEPT, ISACTM )
+      IMPLICIT NONE
+C
+      REAL*8  SACEPT
+      INTEGER ISACTM( 6 )
+C
+      INTEGER NDAYIY
+      INTEGER NDAYOR
+      INTEGER NDAYS
+      INTEGER IY
+      INTEGER LEAPYR
+      REAL*8  DSEC
+C
+      NDAYS  = INT( SACEPT/86400.0d0 )
+      IF ( SACEPT.LT.0 ) NDAYS = NDAYS - 1
+      ISACTM( 3 ) = SACEPT/3600.0d0 - 24.0d0*DBLE( NDAYS )
+      ISACTM( 4 ) = SACEPT/60.0d0 - 1440.0d0*DBLE( NDAYS ) -
+     1                60.0d0*DBLE( ISACTM( 3 ) )
+      DSEC        = SACEPT - 86400.0d0*DBLE( NDAYS ) -
+     1                        3600.0d0*DBLE( ISACTM( 3 ) ) -
+     2                          60.0d0*DBLE( ISACTM( 4 ) )
+      ISACTM( 5 ) = INT( DSEC )
+      ISACTM( 6 ) = NINT( 1000.0d0*DSEC ) - 1000*ISACTM( 5 )
+      IF ( ISACTM( 6 ).GE.1000 ) ISACTM( 6 ) = 999
+      IF ( ISACTM( 6 ).LT.0    ) ISACTM( 6 ) = 0
+C
+      NDAYOR = NDAYS
+      IF ( NDAYOR.LT.0 ) THEN
+        ISACTM( 1 ) = 1969
+ 72     CONTINUE
+        CALL ISLEAP(  ISACTM( 1 ), LEAPYR )
+        NDAYIY = 365 + LEAPYR
+        NDAYS  = NDAYS + NDAYIY
+        IF ( NDAYS.GE.0 ) GOTO 73
+        ISACTM( 1 ) = ISACTM( 1 ) - 1
+        GOTO 72
+ 73     CONTINUE
+      ENDIF
+C
+      IF ( NDAYOR.GE.0 ) THEN
+        ISACTM( 1 ) = 1970
+ 82     CONTINUE
+        CALL ISLEAP(  ISACTM( 1 ), LEAPYR )
+        NDAYIY = 365 + LEAPYR
+        IF ( NDAYS.LT.NDAYIY ) GOTO 83
+        ISACTM( 1 ) = ISACTM( 1 ) + 1
+        NDAYS  = NDAYS - NDAYIY
+        GOTO 82
+ 83     CONTINUE
+      ENDIF
+C
+      ISACTM( 2 ) = NDAYS + 1
 C
       RETURN
       END
