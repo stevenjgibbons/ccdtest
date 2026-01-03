@@ -109,7 +109,10 @@ This whole library is provided in the single source file XAPIIR.f.
 
 It also requires the LAPACK and BLAS libraries - although all the routines needed are included in the linear algebra part of https://github.com/stevenjgibbons/LEOPACK-2022-revision  
 
+Modification 2025/12/30  
 
+Writes out a file in SAC format **outputcc.sac** containing the stack CC trace over the short time-window.  
+The starting epoch time of this trace is *target time - template reference time*.  
 
 
 
