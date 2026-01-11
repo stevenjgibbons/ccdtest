@@ -1,5 +1,5 @@
 #
-# Makefile for m3csdirest.
+# Makefile for ccdtest.
 # Steven J Gibbons 2023/08/21 (Oslo)
 # Before trying to compile, please ensure that the following
 # lines have the correct locations of SACLIB, LAPACK, and BLAS
