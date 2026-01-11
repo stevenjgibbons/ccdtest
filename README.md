@@ -1,7 +1,7 @@
 # ccdtest
 Cross-Correlation Differential Time ESTimator (ccdtest)  
 
-ccdtest v1.0.0 (January 21, 2024) is permanently archived on Zenodo with DOI: 10.5281/zenodo.10546486
+ccdtest v1.0.1 (January 11, 2026) is permanently archived on Zenodo with DOI: 10.5281/zenodo.10546486
 
 [![DOI](https://zenodo.org/badge/714749863.svg)](https://zenodo.org/doi/10.5281/zenodo.10546486)  
 
