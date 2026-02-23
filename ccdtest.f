@@ -1607,6 +1607,11 @@ C
         WRITE (6,*) 'NTSTAR   = ', NTSTAR
         WRITE (6,*) 'NLENWN   = ', NLENWN
         WRITE (6,*) 'NELCC    = ', NELCC 
+C StG - added the next four lines to identify the cause of failure better 20260223       
+        WRITE (6,*) '(NTSTAR - NLENWN + 1) should equal NELCC'
+        WRITE (6,*) '(NTSTAR - NLENWN + 1) = ', (NTSTAR - NLENWN + 1)
+        WRITE (6,*) '(IN1COR + NELCC - 1) should .le. NCCSMX'
+        WRITE (6,*) '(IN1COR + NELCC - 1) = ', (IN1COR + NELCC - 1)
         IERR   = 1
         RETURN
       ENDIF
