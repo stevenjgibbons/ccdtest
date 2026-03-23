@@ -123,5 +123,12 @@ Harris, David. XAPiir: A recursive digital filtering package, report, September 
 University of North Texas Libraries, UNT Digital Library,  
 https://digital.library.unt.edu; crediting UNT Libraries Government Documents Department.  
 
+If you publish using this code, I kindly ask you to cite the following paper: 
+**Relative location of seismic events using broadband frequency-wavenumber analysis: Application to the North Korean Nuclear Test Site**  
+Steven J. Gibbons, *RAS Techniques and Instruments*, rzag023, https://doi.org/10.1093/rasti/rzag023
+
+![Screenshot from the above paper https://doi.org/10.1093/rasti/rzag023](FKRELLOC_Promo_Image_Screenshot.png)
+
+
 
 
